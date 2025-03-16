@@ -168,6 +168,15 @@ public class PlayerSprite : MonoBehaviour
             else if (playerNumber == 2 && Input.GetKeyDown(KeyCode.Return) && !isFilling)
             {
                 Debug.Log("Made it inside the Key press and PlayerNumber conditional");
+                if (canDropOff)
+                {
+                    soundManager.PlayAudio(AudioType.Building_The_Dam);
+                }
+                else if (!isCarryingStick)
+                {
+                    StartCoroutine(PlayChopSound());
+
+                }
                 StartProgress(); // Start the progress bar for Player 2
             }
         }
