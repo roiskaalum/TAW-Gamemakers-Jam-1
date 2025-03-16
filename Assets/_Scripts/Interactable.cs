@@ -9,7 +9,7 @@ public class Interactable : MonoBehaviour
     public PlayerSprite player1; // Reference to Player 1 (you can drag and drop in the editor)
     public PlayerSprite player2; // Reference to Player 2 (you can drag and drop in the editor)
 
-    private int numberOfLogs = 5;
+    private int numberOfLogs = 0;
 
     private void Start()
     {
@@ -22,7 +22,7 @@ public class Interactable : MonoBehaviour
         // Ensure quads are visible at the start
         foreach (var quad in quads)
         {
-            quad.SetActive(true);
+            quad.SetActive(false);
         }
     }
 
@@ -69,9 +69,19 @@ public class Interactable : MonoBehaviour
                 quads[i].SetActive(true);
             }
             numberOfLogs = 5;
+            player.canStartProgress = true;
+            return;
         }
         // Randomly disable one of the quads
-        int randomIndex = Random.Range(0, quads.Length);
+
+        int randomIndex;
+        int maxAttempts = 100;
+        do
+        {
+            randomIndex = Random.Range(0, quads.Length);
+            maxAttempts--;
+        } while (!quads[randomIndex].activeSelf && maxAttempts <= 0);
+        
         quads[randomIndex].SetActive(false);
         numberOfLogs--;
         player.isCarryingStick = true;

@@ -1,3 +1,5 @@
+using System.Collections;
+using TMPro;
 using UnityEngine;
 
 public class DropOffZone : MonoBehaviour
@@ -6,6 +8,12 @@ public class DropOffZone : MonoBehaviour
     public GameObject[] dams;
     public GameObject initialRiver;
     public int stageIdentifier = 0;
+
+    public TextMeshPro textObject;
+    public float displayTime = 2f;
+
+
+    
 
     private void Start()
     {
@@ -19,6 +27,14 @@ public class DropOffZone : MonoBehaviour
         }
 
         initialRiver.SetActive(true);
+        StartCoroutine(ShowTextTemporarily());
+    }
+
+    private IEnumerator ShowTextTemporarily()
+    {
+        textObject.gameObject.SetActive(true);
+        yield return new WaitForSeconds(displayTime);
+        textObject.gameObject.SetActive(false);
     }
 
     public void DroppedAStickOff(int stageIdentifier)

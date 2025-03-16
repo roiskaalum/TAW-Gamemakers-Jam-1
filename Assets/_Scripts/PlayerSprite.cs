@@ -1,3 +1,5 @@
+using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,14 +28,30 @@ public class PlayerSprite : MonoBehaviour
 
     public bool isInsideCollider = false;
 
+    private SoundManager soundManager;
+    public AudioType[] audioTypes = { AudioType.Soundtrack_01, AudioType.Soundtrack_02, AudioType.Soundtrack_03, AudioType.Soundtrack_04, AudioType.Soundtrack_05 };
+    private int musicIndexer = 1;
+    private float timeSinceLastActivated = 0;
+
+    public bool moving = false;
+
+
     void Start()
     {
+        soundManager = SoundManager.instance;
+        if (soundManager == null)
+        {
+            Debug.Log("Something went wrong, because SoundManager Instace is null");
+        }
+        soundManager.PlayAudio(AudioType.Soundtrack_01); // on scene load, play soundtrack 1.
+
         // Get the Rigidbody component attached to this object
         rb = GetComponent<Rigidbody>();
         // Get Background and Fill Images
         Image background = slider.transform.Find("Background").GetComponent<Image>();
         Image fill = slider.transform.Find("Fill Area/Fill").GetComponent<Image>();
         GameObject handle = slider.transform.Find("Handle Slide Area/Handle").gameObject;
+
 
         // Set Colors
         background.color = Color.red;   // Background -> Red
@@ -90,7 +108,17 @@ public class PlayerSprite : MonoBehaviour
 
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
 
-        Vector3 screenPosition = Camera.main.WorldToScreenPoint(player.transform.position + offset);
+        if (moveDir == Vector3.zero)
+        {
+            moving = false;
+        }
+        else
+        {
+            moving = true;
+        }
+
+
+            Vector3 screenPosition = Camera.main.WorldToScreenPoint(player.transform.position + offset);
         slider.transform.position = screenPosition;
 
         // Move the Rigidbody using MovePosition
@@ -100,17 +128,42 @@ public class PlayerSprite : MonoBehaviour
         rb.MoveRotation(rotationDir);
 
         #endregion Transform and Rotate on Input
+        //Background Music Switcher.
+        if (Input.GetKey(KeyCode.T) && 1 <= Time.time - timeSinceLastActivated)
+        {
+            timeSinceLastActivated = Time.time;
+            switchMusic();
+        }
+        if (Input.GetKey(KeyCode.G) && 1 <= Time.time - timeSinceLastActivated)
+        {
+            timeSinceLastActivated = Time.time;
+            if(!(musicIndexer!=5))
+                soundManager.StopAudio(audioTypes[musicIndexer - 1]);
+            else
+                soundManager.StopAudio(audioTypes[0]);
+        }
+
 
         //Debug.Log(canStartProgress + " : " + !isCarryingStick);
         // Handle progress bar logic based on player input
         //Debug.Log(canStartProgress + " : Can StartProgress ------ Combined: " + (!isCarryingStick || canDropOff) + " ------------------------- !isCarryingStick: " + !isCarryingStick + " --- " + canDropOff + " : canDropOff");
-        if (canStartProgress && (!isCarryingStick || canDropOff))
+        if ((canStartProgress && (isCarryingStick && canDropOff)) || (canStartProgress && !canDropOff))
         {
             // Check for interaction key (E for Player 1, Enter for Player 2)
             if (playerNumber == 1 && Input.GetKeyDown(KeyCode.E) && !isFilling)
             {
                 Debug.Log("Made it inside the Key press and PlayerNumber conditional");
-                StartProgress(); // Start the progress bar for Player 1
+                if (canDropOff)
+                {
+                    soundManager.PlayAudio(AudioType.Building_The_Dam);
+                }
+                else if (!isCarryingStick)
+                {
+                    StartCoroutine(PlayChopSound());
+                    
+                }
+
+                    StartProgress(); // Start the progress bar for Player 1
             }
             else if (playerNumber == 2 && Input.GetKeyDown(KeyCode.Return) && !isFilling)
             {
@@ -128,9 +181,25 @@ public class PlayerSprite : MonoBehaviour
             if (slider.value >= slider.maxValue)
             {
                 isFilling = false;
+                Debug.Log("Progress bar complete, isFilling set to false.");
                 ProgressComplete(this);
             }
         }
+    }
+
+    private IEnumerator PlayChopSound()
+    {
+        soundManager.PlayAudio(AudioType.Chopping_The_Wood);
+        yield return new WaitForSeconds(3);
+        soundManager.PlayAudio(AudioType.Tree_Falling_Down);
+    }
+
+    private void switchMusic()
+    {
+        soundManager.PlayAudio(audioTypes[musicIndexer]);
+        Debug.Log(audioTypes[musicIndexer]);
+        musicIndexer++;
+        if(musicIndexer >= 5) { musicIndexer = 0; }
     }
 
     private void OnCollisionExit(Collision collision)
@@ -156,39 +225,25 @@ public class PlayerSprite : MonoBehaviour
     {
         if (canDropOff && isCarryingStick)
         {
-            canDropOff = false;
-            isCarryingStick = false;
+            Debug.Log("Stick dropped off, isCarryingStick set to false.");
             int numbReceivedFromDropOffZone = dropOffZone.stageIdentifier;
             dropOffZone.DroppedAStickOff(numbReceivedFromDropOffZone);
-            Debug.Log("Dropped Stick function played");
             dropOffZone.stageIdentifier = numbReceivedFromDropOffZone + 1;
         }
-        Debug.Log("Dropped Stick function played Should've played");
+
         slider.value = 0;
         slider.gameObject.SetActive(false);
-        Debug.Log("Progress Bar Complete!");
+        
         if (canDropOff)
         {
             isCarryingStick = false;
         }
         else
-        if (!canDropOff)
         {
             interactable.HideRandomQuad(player);
         }
-
-        // Add any effect, animation, or trigger event here.
-        //Should add a method call to remove a stick, and set carrying stick to true.
-
-        Debug.Log("canDropOff: " + canDropOff + " | isCarryingStick: " + isCarryingStick + " | canStartProgress: " + canStartProgress);
-        Debug.Log("canDropOff: " + canDropOff + " | isCarryingStick: " + isCarryingStick + " | canStartProgress: " + canStartProgress);
-
-
-        if (!canDropOff && !isCarryingStick)
-        {
-            isCarryingStick = true;
-        }
-
+        
         canStartProgress = false;
+        Debug.Log("canDropOff: " + canDropOff + " | isCarryingStick: " + isCarryingStick + " | canStartProgress: " + canStartProgress);
     }
 }
